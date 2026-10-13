@@ -43,6 +43,7 @@ let myName = localStorage.getItem('nightshift-player-name') || '';
 let game = null;
 let roundTimer = null;
 let revealTimer = null;
+let sequenceRevealTimer = null;
 let subscribed = false;
 let hostPresent = false;
 let soundOn = false;
@@ -194,6 +195,7 @@ function showHome() {
 function draw() {
   if (!game) return;
   if (lastDrawnPhase !== game.phase) {
+    if (game.phase !== 'challenge') { clearTimeout(sequenceRevealTimer); sequenceRevealTimer = null; }
     if (lastDrawnPhase !== null) sound(game.phase === 'over' ? 'win' : 'transition');
     lastDrawnPhase = game.phase;
   }
@@ -269,8 +271,9 @@ function drawChallenge() {
   const display = assigned ? `<div class="sequence-caption">${sequenceVisible ? 'WATCH THESE MARKS' : 'YOUR SEQUENCE'}</div><div class="sequence-slots" aria-live="polite">${sequenceVisible ? sequenceRow : entered}</div>` : '<span class="waiting">The house is testing the guests who missed.</span>';
   const instructions = assigned ? sequenceVisible ? 'Watch the three marks for a moment. They will disappear; then tap the matching buttons below in the same order.' : 'Tap the same three marks, in order, using the labeled buttons. Your taps fill the numbered boxes. Your third tap submits automatically.' : 'Only guests who missed the question take this test.';
   roomEl.innerHTML = `${commonTop()}<div class="game-grid"><section class="card"><progress class="question-progress" max="${CHALLENGE_SECONDS}" value="${seconds}" aria-label="Test time remaining"></progress><div class="round-label">THE MIRROR TEST · ${CHALLENGE_SECONDS} SECONDS</div><h2 class="challenge-title">Remember what the mirror shows.</h2><p class="challenge-copy">${instructions}</p>${display}${assigned && !done ? `<div class="tile-grid" role="group" aria-label="Choose a mark">${buttons}</div><p class="challenge-help">Each button has its symbol name. You get three taps; the third submits your answer. A correct order keeps your heart. A wrong order costs one.</p>` : ''}<div class="question-foot"><span>${ownStatus}</span><span class="timer"><span class="timer-number">${seconds}</span> SEC</span></div><p class="challenge-note">${localSequence.length}/3 MARKS ENTERED · ${Object.keys(challenge.submitted || {}).length}/${challenge.players.length} TESTS COMPLETE</p></section>${roster()}</div>`;
-  if (assigned && !done && Date.now() < (challenge.revealUntil || 0) && !sequenceVisible) {
-    sequenceVisible = true; clearTimeout(revealTimer); revealTimer = setTimeout(() => { sequenceVisible = false; if (game?.phase === 'challenge') drawChallenge(); }, Math.max(500, challenge.revealUntil - Date.now()));
+  clearTimeout(sequenceRevealTimer);
+  if (assigned && !done && sequenceVisible) {
+    sequenceRevealTimer = setTimeout(() => { sequenceVisible = false; sequenceRevealTimer = null; if (game?.phase === 'challenge') drawChallenge(); }, Math.max(30, challenge.revealUntil - Date.now()));
   }
   clearInterval(roundTimer);
   roundTimer = setInterval(() => { const timer = roomEl.querySelector('.timer-number'); const progress = roomEl.querySelector('.question-progress'); const remaining=Math.max(0,(challenge.deadline-Date.now())/1000); if(timer) { timer.textContent=String(Math.ceil(remaining)); timer.closest('.timer')?.classList.toggle('urgent',remaining<5); } if(progress) progress.value=remaining; }, 100);
@@ -432,7 +435,7 @@ function resolveQuestion() {
   }
   const now = Date.now();
   game.phase = 'challenge';
-  game.challenge = { players: missed, sequences: Object.fromEntries(missed.map(id=>[id,Array.from({length:3},()=>Math.floor(Math.random()*4))])), submitted: {}, revealUntil: now + 2300, deadline: now + CHALLENGE_SECONDS * 1000 };
+  game.challenge = { players: missed, sequences: Object.fromEntries(missed.map(id=>[id,Array.from({length:3},()=>Math.floor(Math.random()*4))])), submitted: {}, revealUntil: now + 3200, deadline: now + CHALLENGE_SECONDS * 1000 };
   game.lastResult = {};
   sequenceVisible = false;
   publish();
@@ -568,7 +571,7 @@ async function joinRoom() {
 }
 
 function leaveRoom() {
-  clearInterval(roundTimer); clearTimeout(revealTimer);
+  clearInterval(roundTimer); clearTimeout(revealTimer); clearTimeout(sequenceRevealTimer); sequenceRevealTimer = null;
   if (channel) { supabase.removeChannel(channel); channel=null; }
   game=null; isHost=false; subscribed=false; hostPresent=false; lastDrawnPhase=null; history.replaceState(null,'',location.pathname); showHome();
 }

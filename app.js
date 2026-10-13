@@ -32,8 +32,11 @@ let channel = null;
 let isHost = false;
 let roomCode = '';
 const newPlayerId = () => globalThis.crypto?.randomUUID?.() || `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
-let myId = localStorage.getItem('nightshift-player-id') || newPlayerId();
-localStorage.setItem('nightshift-player-id', myId);
+// Player identity must be scoped to a tab. localStorage is shared by every
+// tab on the same browser profile, which makes a second local playtest client
+// overwrite the host's Realtime presence key.
+let myId = sessionStorage.getItem('nightshift-player-id') || newPlayerId();
+sessionStorage.setItem('nightshift-player-id', myId);
 let myName = localStorage.getItem('nightshift-player-name') || '';
 let game = null;
 let roundTimer = null;
@@ -349,6 +352,9 @@ function connect(code, host) {
   channel = supabase.channel(`nightshift:${code}`, { config: { broadcast: { self: false }, presence: { key: myId } } });
   channel.on('broadcast',{event:'state'},({payload})=>{
     if (host || !payload?.game) return;
+    // A state response also confirms the room is live; Presence sync can lag
+    // or be missed during a reconnect.
+    hostPresent = true;
     if (payload.game.updatedAt && payload.game.updatedAt < lastStateAt) return;
     if (game?.phase !== payload.game.phase || game?.challenge?.deadline !== payload.game.challenge?.deadline) localSequence=[];
     game=payload.game; lastStateAt=game.updatedAt||Date.now();
@@ -359,7 +365,7 @@ function connect(code, host) {
   channel.on('broadcast',{event:'intent'},({payload})=>{
     if(!host||!payload?.id||payload.id===myId) return;
     if(payload.action==='sync'){
-      if(game?.players?.some(p=>p.id===payload.id)) channel.send({type:'broadcast',event:'state',payload:{game}});
+      channel.send({type:'broadcast',event:'state',payload:{game}});
       return;
     }
     if(payload.action==='join'){

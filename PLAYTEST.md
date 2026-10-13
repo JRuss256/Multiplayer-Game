@@ -18,9 +18,12 @@ For a two-device session, connect both devices to the same Wi-Fi and open the ho
 - Turn the optional generated ambience and sound cues on and off from the top bar.
 - Try one correct and one incorrect answer.
 - Answer early and confirm the 18-second question countdown still reaches zero before the result appears.
-- In the Mirror Test, watch the three marks, then repeat them using the four large buttons.
+- In the Mirror Test, watch the three marks. Once they hide, tap the labeled symbol buttons in the same order; the numbered boxes show each tap, and tap three submits. Try this on a phone to check the larger 2×2 controls.
 - Continue through five questions and the exit run.
+- In the exit run, select an answer, switch to a different choice, then lock it. Confirm that your locked choice cannot change, and that the question resolves as soon as every living player locks instead of waiting out the timer.
+- Enable sound and listen for the generated ambient drone and sparse bell notes; disable it to confirm the audio stops.
 - Refresh one guest during a round and confirm the player returns to the room.
 - Try a made-up room code to see the recovery message.
 
 Every device needs an internet connection for Supabase Realtime and the question-source links. The room host's browser should remain open while the game is in progress.
+

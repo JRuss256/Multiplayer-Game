@@ -23,10 +23,11 @@ const QUESTIONS = [
   { q: 'Which film won Best Picture at the 2023 Academy Awards?', a: ['The Fabelmans', 'Tár', 'Everything Everywhere All at Once', 'Top Gun: Maverick'], correct: 2, source: 'https://www.oscars.org/oscars/ceremonies/2023' },
 ];
 const SYMBOLS = ['▲', '✦', '●', '◆'];
+const SYMBOL_NAMES = ['triangle', 'star', 'circle', 'diamond'];
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_PLAYERS = 6;
 const QUESTION_SECONDS = 18;
-const CHALLENGE_SECONDS = 12;
+const CHALLENGE_SECONDS = 15;
 const roomEl = document.querySelector('#room');
 const homeEl = document.querySelector('#home');
 let channel = null;
@@ -62,8 +63,9 @@ const isRecord = (value) => Boolean(value) && typeof value === 'object' && !Arra
 const hasOnlyKeys = (value, allowed) => isRecord(value) && Object.keys(value).every(key => allowed.includes(key));
 const validId = (value) => typeof value === 'string' && value.length > 0 && value.length <= 80;
 const validIndexMap = (value, players) => isRecord(value) && Object.keys(value).length <= MAX_PLAYERS && Object.entries(value).every(([id, n]) => players.has(id) && Number.isInteger(n) && n >= 0 && n <= 3);
+const validBooleanMap = (value, players) => isRecord(value) && Object.keys(value).length <= MAX_PLAYERS && Object.entries(value).every(([id, locked]) => players.has(id) && typeof locked === 'boolean');
 function isValidGameState(state) {
-  const fields = ['hostId','phase','players','round','questionId','questions','answers','deadline','challenge','finaleCount','finaleAnswers','winnerId','createdAt','updatedAt','lastResult','phaseLabel'];
+  const fields = ['hostId','phase','players','round','questionId','questions','answers','deadline','challenge','finaleCount','finaleAnswers','finaleLocked','winnerId','createdAt','updatedAt','lastResult','phaseLabel'];
   if (!hasOnlyKeys(state, fields) || !validId(state.hostId)) return false;
   if (!['lobby','tutorial','question','challenge','result','finale','over'].includes(state.phase)) return false;
   if (!Array.isArray(state.players) || state.players.length > MAX_PLAYERS || !Number.isInteger(state.round) || state.round < 0 || state.round > 6) return false;
@@ -78,6 +80,7 @@ function isValidGameState(state) {
   if (!Array.isArray(state.questions) || state.questions.length > QUESTIONS.length || state.questions.some(id => !Number.isInteger(id) || id < 0 || id >= QUESTIONS.length)) return false;
   if (state.questionId !== null && (!Number.isInteger(state.questionId) || state.questionId < 0 || state.questionId >= QUESTIONS.length)) return false;
   if (!validIndexMap(state.answers || {}, ids) || !validIndexMap(state.finaleAnswers || {}, ids)) return false;
+  if (!validBooleanMap(state.finaleLocked || {}, ids)) return false;
   if (state.deadline !== null && (!Number.isFinite(state.deadline) || state.deadline < 0)) return false;
   if (!Number.isInteger(state.finaleCount) || state.finaleCount < 0 || state.finaleCount > 8) return false;
   if (state.winnerId !== null && (!validId(state.winnerId) || !ids.has(state.winnerId))) return false;
@@ -138,28 +141,36 @@ function startAmbience() {
   clearTimeout(ambienceStopTimer); ambienceStopTimer=null;
   masterGain.gain.cancelScheduledValues(context.currentTime); masterGain.gain.setTargetAtTime(.85,context.currentTime,.06);
   if (ambientNodes.length) {
-    ambientGain.gain.cancelScheduledValues(context.currentTime); ambientGain.gain.setTargetAtTime(.012,context.currentTime,.08);
+    ambientGain.gain.cancelScheduledValues(context.currentTime); ambientGain.gain.setTargetAtTime(.055,context.currentTime,.08);
     return;
   }
-  ambientGain = context.createGain(); ambientGain.gain.value = .012; ambientGain.connect(masterGain || context.destination);
-  [55, 82.41].forEach((frequency, index) => {
+  ambientGain = context.createGain(); ambientGain.gain.value = .055;
+  const lowpass = context.createBiquadFilter(); lowpass.type = 'lowpass'; lowpass.frequency.value = 720; lowpass.Q.value = .45;
+  ambientGain.connect(lowpass); lowpass.connect(masterGain || context.destination); ambientNodes.push(lowpass);
+  // Original oscillator-only bed: a soft low drone, a slow wavering mid tone,
+  // and occasional bell-like notes. No recorded or third-party audio is used.
+  [[55,'sine',.38],[82.41,'triangle',.16],[110,'sine',.11],[164.81,'sine',.045]].forEach(([frequency,type,level], index) => {
     const oscillator = context.createOscillator(); const voiceGain = context.createGain();
-    oscillator.type = index ? 'triangle' : 'sine'; oscillator.frequency.value = frequency; voiceGain.gain.value = index ? .34 : .66;
+    oscillator.type = type; oscillator.frequency.value = frequency; voiceGain.gain.value = level;
     oscillator.connect(voiceGain); voiceGain.connect(ambientGain); oscillator.start(); ambientNodes.push(oscillator, voiceGain);
+    if (index === 1) {
+      const lfo = context.createOscillator(); const lfoGain = context.createGain();
+      lfo.frequency.value = .06; lfoGain.gain.value = 3.5; lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); lfo.start(); ambientNodes.push(lfo, lfoGain);
+    }
   });
-  const motif = [146.83, 174.61, 130.81, 196];
+  const motif = [220, 261.63, 196, 293.66, 220, 164.81];
   musicNoteIndex = 0;
   musicTimer = setInterval(() => {
     if (soundOn) playMusicNote(motif[musicNoteIndex++ % motif.length]);
-  }, 2600);
+  }, 3200);
 }
 
 function playMusicNote(frequency) {
   if (!audio || !soundOn) return;
   const oscillator = audio.createOscillator(); const gain = audio.createGain(); const now = audio.currentTime;
   oscillator.type = 'sine'; oscillator.frequency.value = frequency;
-  gain.gain.setValueAtTime(.0001, now); gain.gain.exponentialRampToValueAtTime(.009, now + .18); gain.gain.exponentialRampToValueAtTime(.0001, now + 1.8);
-  oscillator.connect(gain); gain.connect(masterGain || audio.destination); oscillator.start(now); oscillator.stop(now + 1.9);
+  gain.gain.setValueAtTime(.0001, now); gain.gain.exponentialRampToValueAtTime(.018, now + .65); gain.gain.exponentialRampToValueAtTime(.0001, now + 3.1);
+  oscillator.connect(gain); gain.connect(masterGain || audio.destination); oscillator.start(now); oscillator.stop(now + 3.2);
 }
 
 function stopAmbience() {
@@ -171,7 +182,7 @@ function stopAmbience() {
 }
 
 function initialGame(hostId) {
-  return { hostId, phase: 'lobby', players: [], round: 0, questionId: null, questions: [], answers: {}, deadline: null, challenge: null, finaleCount: 0, finaleAnswers: {}, winnerId: null, createdAt: Date.now() };
+  return { hostId, phase: 'lobby', players: [], round: 0, questionId: null, questions: [], answers: {}, deadline: null, challenge: null, finaleCount: 0, finaleAnswers: {}, finaleLocked: {}, winnerId: null, createdAt: Date.now() };
 }
 
 function showHome() {
@@ -218,8 +229,8 @@ function drawLobby() {
 function drawTutorial() {
   const steps = [
     ['01', 'Answer together', 'Each question gives you 18 seconds. Lock in one answer; the room waits for the clock.'],
-    ['02', 'Survive the mirror', 'Miss a question and repeat three marks in order. Fail the test and lose one of your three hearts.'],
-    ['03', 'Find the exit', 'After five rounds, the survivors enter the exit run. First to three correct escapes; after eight questions, the highest score wins.'],
+    ['02', 'Survive the mirror', 'Miss a question and watch three marks, then tap those same marks in order. Three taps submit. Fail the 15-second test and lose one of your three hearts.'],
+    ['03', 'Find the exit', 'After five rounds, survivors enter the exit run. Pick an answer, then lock it in; change it any time before locking. When everyone locks, the question resolves. First to three correct escapes; after eight questions, the highest score wins.'],
   ];
   roomEl.innerHTML = `${commonTop()}<div class="game-grid"><section class="card tutorial-card"><div class="round-label">BEFORE THE NIGHT BEGINS</div><h2 class="lobby-title">Three things to know.</h2><div class="tutorial-steps">${steps.map(([number,title,copy])=>`<article class="tutorial-step"><span class="tutorial-number">${number}</span><div><h3>${title}</h3><p>${copy}</p></div></article>`).join('')}</div><p class="tutorial-audio-note">Sound is optional. Turn it on any time; the eerie music and effects are generated in your browser.</p>${hostButton('BEGIN THE FIRST QUESTION', 'begin')}</section>${roster()}</div>`;
 }
@@ -229,14 +240,16 @@ function activeQuestion() { return QUESTIONS[game.questionId] || QUESTIONS[0]; }
 function drawQuestion() {
   const q = activeQuestion(); const final = game.phase === 'finale';
   const seconds = Math.max(0, Math.ceil(((game.deadline || Date.now()) - Date.now()) / 1000));
-  const submitted = game.answers?.[myId] !== undefined || game.finaleAnswers?.[myId] !== undefined;
+  const selectedAnswer = final ? game.finaleAnswers?.[myId] : game.answers?.[myId];
+  const locked = final ? Boolean(game.finaleLocked?.[myId]) : selectedAnswer !== undefined;
   const roundAnswers = final ? (game.finaleAnswers || {}) : (game.answers || {});
-  const allAnswersIn = alivePlayers().length > 0 && alivePlayers().every(player => roundAnswers[player.id] !== undefined);
-  const canAnswer = isActive() && !submitted;
+  const allAnswersIn = alivePlayers().length > 0 && alivePlayers().every(player => final ? game.finaleLocked?.[player.id] === true : roundAnswers[player.id] !== undefined);
+  const canAnswer = isActive() && !locked;
   const prompt = final ? `<p class="finale-progress">${myPlayer()?.escapeScore || 0} / 3 CORRECT TO ESCAPE</p>` : `<div class="round-label">QUESTION ${esc(game.round)} · GET IT RIGHT TO KEEP YOUR HEART</div>`;
-  const options = q.a.map((answer, i) => `<button class="answer ${game.answers?.[myId] === i || game.finaleAnswers?.[myId] === i ? 'selected' : ''}" data-action="answer" data-answer="${i}" ${canAnswer ? '' : 'disabled'}><span class="answer-key">0${i+1}</span><span>${esc(answer)}</span></button>`).join('');
-  const stateLine = !isActive() ? 'YOU ARE OUT · WATCH THE LIVING' : submitted && allAnswersIn ? 'EVERYONE LOCKED · WAITING FOR THE CLOCK' : submitted ? 'ANSWER LOCKED · THE HOUSE IS LISTENING' : 'LOCK AN ANSWER BEFORE THE LIGHT GOES OUT';
-  roomEl.innerHTML = `${commonTop()}<div class="game-grid"><section class="card"><progress class="question-progress" max="${QUESTION_SECONDS}" value="${seconds}" aria-label="Time remaining"></progress>${prompt}<h2 class="question">${esc(q.q)}</h2><div class="answers">${options}</div><div class="question-foot"><span>${stateLine}</span><span class="timer"><span class="timer-number">${seconds}</span> SEC</span></div>${final && isHost && (myPlayer()?.escapeScore || 0) >= 3 ? hostButton('CHECK OUT', 'forcefinish') : ''}</section>${roster()}</div>`;
+  const options = q.a.map((answer, i) => `<button class="answer ${selectedAnswer === i ? 'selected' : ''} ${final && locked ? 'locked' : ''}" data-action="answer" data-answer="${i}" ${canAnswer ? '' : 'disabled'}><span class="answer-key">0${i+1}</span><span>${esc(answer)}</span></button>`).join('');
+  const stateLine = !isActive() ? 'YOU ARE OUT · WATCH THE LIVING' : final ? locked ? allAnswersIn ? 'EVERYONE LOCKED · THE HOUSE OPENS THE DOOR' : 'ANSWER LOCKED · WAITING FOR THE OTHER GUESTS' : selectedAnswer === undefined ? 'CHOOSE AN ANSWER, THEN LOCK IT IN' : 'ANSWER SELECTED · CHANGE IT ANYTIME BEFORE LOCKING' : locked && allAnswersIn ? 'EVERYONE LOCKED · WAITING FOR THE CLOCK' : locked ? 'ANSWER LOCKED · THE HOUSE IS LISTENING' : 'LOCK AN ANSWER BEFORE THE LIGHT GOES OUT';
+  const lockControl = final && isActive() ? `<button class="button button-primary finale-lock" data-action="lock" ${selectedAnswer === undefined || locked ? 'disabled' : ''}>${locked ? 'ANSWER LOCKED' : 'LOCK IN ANSWER'}<span>${locked ? '✓' : '→'}</span></button>` : '';
+  roomEl.innerHTML = `${commonTop()}<div class="game-grid"><section class="card"><progress class="question-progress" max="${QUESTION_SECONDS}" value="${seconds}" aria-label="Time remaining"></progress>${prompt}<h2 class="question">${esc(q.q)}</h2><div class="answers">${options}</div>${lockControl}<div class="question-foot"><span>${stateLine}</span><span class="timer"><span class="timer-number">${seconds}</span> SEC</span></div>${final && isHost && (myPlayer()?.escapeScore || 0) >= 3 ? hostButton('CHECK OUT', 'forcefinish') : ''}</section>${roster()}</div>`;
   clearInterval(roundTimer);
   roundTimer = setInterval(() => { const timer = roomEl.querySelector('.timer-number'); const progress = roomEl.querySelector('.question-progress'); if (timer && game?.deadline) { const remaining=Math.max(0,game.deadline-Date.now()); timer.textContent=String(Math.ceil(remaining/1000)); timer.closest('.timer')?.classList.toggle('urgent',remaining<5000); if(progress) progress.value=remaining/1000; } }, 100);
 }
@@ -249,11 +262,13 @@ function drawChallenge() {
   const done = challenge.submitted?.[myId] !== undefined;
   const seconds = Math.max(0, Math.ceil(((challenge.deadline || Date.now()) - Date.now()) / 1000));
   const seq = challenge.sequences?.[myId] || [];
-  const sequenceRow = seq.map((n,i) => `<span class="glyph ${sequenceVisible ? 'current' : ''}" aria-hidden="true">${sequenceVisible ? SYMBOLS[n] : '·'}</span>`).join('');
-  const ownStatus = !assigned ? (isActive() ? 'SAFE FOR NOW · THE HOUSE TESTS THE PEOPLE WHO MISSED' : 'YOU ARE OUT · WATCH THE LIVING') : done ? 'TEST COMPLETE · WAIT FOR THE VERDICT' : sequenceVisible ? 'MEMORIZE THE ORDER' : 'REPEAT THE ORDER BEFORE TIME RUNS OUT';
-  const buttons = SYMBOLS.map((sym,i)=>`<button class="tile" data-action="sequence" data-symbol="${i}" ${assigned && !done && !sequenceVisible && localSequence.length<3 ? '' : 'disabled'} aria-label="Tap ${sym}">${sym}</button>`).join('');
-  const entered = localSequence.map(n=>`<span class="glyph">${SYMBOLS[n]}</span>`).join('');
-  roomEl.innerHTML = `${commonTop()}<div class="game-grid"><section class="card"><progress class="question-progress" max="${CHALLENGE_SECONDS}" value="${seconds}" aria-label="Test time remaining"></progress><div class="round-label">THE MIRROR TEST</div><h2 class="challenge-title">The house has a good memory.</h2><p class="challenge-copy">Repeat the three marks in the right order. Take a breath. The mirror is already looking back.</p><div class="sequence-display">${assigned ? (sequenceVisible ? sequenceRow : (entered || '<span class="waiting">···</span>')) : '<span class="waiting">The house is testing the guests who missed.</span>'}</div>${assigned && !done ? `<div class="tile-grid">${buttons}</div>` : ''}<div class="question-foot"><span>${ownStatus}</span><span class="timer"><span class="timer-number">${seconds}</span> SEC</span></div><p class="challenge-note">${localSequence.length}/3 MARKS · ${Object.keys(challenge.submitted || {}).length}/${challenge.players.length} TESTS COMPLETE</p></section>${roster()}</div>`;
+  const sequenceRow = seq.map((n,i) => `<span class="sequence-slot shown"><span class="slot-number">${i+1}</span><span class="glyph ${sequenceVisible ? 'current' : ''}" aria-label="${SYMBOL_NAMES[n]}">${sequenceVisible ? SYMBOLS[n] : '·'}</span></span>`).join('');
+  const ownStatus = !assigned ? (isActive() ? 'SAFE FOR NOW · THE HOUSE TESTS THE PEOPLE WHO MISSED' : 'YOU ARE OUT · WATCH THE LIVING') : done ? 'TEST COMPLETE · WAIT FOR THE VERDICT' : sequenceVisible ? 'WATCH AND MEMORIZE THESE THREE MARKS' : 'TAP THE SAME MARKS IN THE SAME ORDER';
+  const buttons = SYMBOLS.map((sym,i)=>`<button class="tile" data-action="sequence" data-symbol="${i}" ${assigned && !done && !sequenceVisible && localSequence.length<3 ? '' : 'disabled'} aria-label="Tap ${SYMBOL_NAMES[i]}"><span class="tile-symbol" aria-hidden="true">${sym}</span><span class="tile-label">${SYMBOL_NAMES[i]}</span></button>`).join('');
+  const entered = Array.from({length:3},(_,i)=>`<span class="sequence-slot ${localSequence[i] !== undefined ? 'filled' : ''}"><span class="slot-number">${i+1}</span><span class="glyph" aria-label="${localSequence[i] !== undefined ? SYMBOL_NAMES[localSequence[i]] : `mark ${i+1} empty`}">${localSequence[i] !== undefined ? SYMBOLS[localSequence[i]] : '·'}</span></span>`).join('');
+  const display = assigned ? `<div class="sequence-caption">${sequenceVisible ? 'WATCH THESE MARKS' : 'YOUR SEQUENCE'}</div><div class="sequence-slots" aria-live="polite">${sequenceVisible ? sequenceRow : entered}</div>` : '<span class="waiting">The house is testing the guests who missed.</span>';
+  const instructions = assigned ? sequenceVisible ? 'Watch the three marks for a moment. They will disappear; then tap the matching buttons below in the same order.' : 'Tap the same three marks, in order, using the labeled buttons. Your taps fill the numbered boxes. Your third tap submits automatically.' : 'Only guests who missed the question take this test.';
+  roomEl.innerHTML = `${commonTop()}<div class="game-grid"><section class="card"><progress class="question-progress" max="${CHALLENGE_SECONDS}" value="${seconds}" aria-label="Test time remaining"></progress><div class="round-label">THE MIRROR TEST · ${CHALLENGE_SECONDS} SECONDS</div><h2 class="challenge-title">Remember what the mirror shows.</h2><p class="challenge-copy">${instructions}</p>${display}${assigned && !done ? `<div class="tile-grid" role="group" aria-label="Choose a mark">${buttons}</div><p class="challenge-help">Each button has its symbol name. You get three taps; the third submits your answer. A correct order keeps your heart. A wrong order costs one.</p>` : ''}<div class="question-foot"><span>${ownStatus}</span><span class="timer"><span class="timer-number">${seconds}</span> SEC</span></div><p class="challenge-note">${localSequence.length}/3 MARKS ENTERED · ${Object.keys(challenge.submitted || {}).length}/${challenge.players.length} TESTS COMPLETE</p></section>${roster()}</div>`;
   if (assigned && !done && Date.now() < (challenge.revealUntil || 0) && !sequenceVisible) {
     sequenceVisible = true; clearTimeout(revealTimer); revealTimer = setTimeout(() => { sequenceVisible = false; if (game?.phase === 'challenge') drawChallenge(); }, Math.max(500, challenge.revealUntil - Date.now()));
   }
@@ -324,14 +339,22 @@ function handleIntent(id, action, payload) {
   if (action === 'answer') {
     if (!player?.alive || player.hearts < 1 || !Number.isInteger(payload.answer)) return;
     if (game.phase === 'question' && game.answers[id] === undefined) {
-      if (payload.answer < 0 || payload.answer > 3) return;
+      if (Date.now() >= game.deadline || payload.answer < 0 || payload.answer > 3) return;
       game.answers[id] = payload.answer;
       publish();
-    } else if (game.phase === 'finale' && game.finaleAnswers[id] === undefined) {
-      if (payload.answer < 0 || payload.answer > 3) return;
+    } else if (game.phase === 'finale' && game.finaleLocked?.[id] !== true) {
+      if (Date.now() >= game.deadline || payload.answer < 0 || payload.answer > 3) return;
       game.finaleAnswers[id] = payload.answer;
       publish();
     }
+    return;
+  }
+  if (action === 'lock') {
+    if (game.phase !== 'finale' || Date.now() >= game.deadline || !player?.alive || player.hearts < 1 || game.finaleAnswers?.[id] === undefined || game.finaleLocked?.[id] === true) return;
+    game.finaleLocked = { ...(game.finaleLocked || {}), [id]: true };
+    publish();
+    const living = alivePlayers();
+    if (living.length > 0 && living.every(guest => game.finaleLocked[guest.id] === true)) resolveFinaleQuestion();
     return;
   }
   if (action === 'sequence') {
@@ -373,6 +396,7 @@ function beginQuestion(final) {
     const next = game.questions[(5 + game.finaleCount) % game.questions.length];
     game.questionId = next;
     game.finaleAnswers = {};
+    game.finaleLocked = {};
     game.deadline = Date.now() + QUESTION_SECONDS * 1000;
     game.finaleCount++;
     publish();
@@ -578,8 +602,8 @@ roomEl.addEventListener('click', async event=>{
   if(action==='answer'){
     const answer=Number(target.dataset.answer);
     if(!isHost && game.phase==='question') { game.answers={...game.answers,[myId]:answer}; draw(); }
-    if(!isHost && game.phase==='finale') { game.finaleAnswers={...game.finaleAnswers,[myId]:answer}; draw(); }
-    sound(answer===activeQuestion().correct?'right':'wrong');
+    if(!isHost && game.phase==='finale' && game.finaleLocked?.[myId] !== true) { game.finaleAnswers={...game.finaleAnswers,[myId]:answer}; draw(); }
+    sound('tap');
     emitIntent('answer',{answer}); return;
   }
   if(action==='sequence'){
@@ -618,3 +642,4 @@ if(initialCode && /^[A-HJ-NP-Z2-9]{5}$/.test(initialCode)){
 window.addEventListener('online',()=>{if(channel){subscribed=true;toast('Connection restored. Checking the room…');}});
 window.addEventListener('offline',()=>{subscribed=false;toast('You are offline. Your game will reconnect when the network returns.');draw();});
 window.addEventListener('pagehide',()=>{if(channel) supabase.removeChannel(channel);});
+

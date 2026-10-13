@@ -229,7 +229,7 @@ function handleIntent(id, action, payload) {
   if (action === 'checkin' && game.phase === 'lobby' && typeof payload.name === 'string') {
     const normalized = payload.name.trim().replace(/\s+/g,' ').slice(0,18);
     if (normalized.length < 2) { toast('Choose a name with at least 2 characters.'); return; }
-    myName = normalized; channel.track({ id: myId, name: myName }); rememberPlayer(myId,myName);
+    myName = normalized; rememberPlayer(myId,myName);
   }
   if (action === 'next' && game.phase === 'result') nextStage();
   if (action === 'forcefinish' && game.phase === 'finale') finishGame(game.players.filter(p=>p.alive).sort((a,b)=>b.escapeScore-a.escapeScore||b.correct-a.correct)[0]?.id);
@@ -349,7 +349,7 @@ function finishGame(winnerId) { game.winnerId=winnerId || null; game.phase='over
 
 function connect(code, host) {
   roomCode = code; isHost = host; subscribed = false; game = host ? (game?.hostId === myId ? game : initialGame(myId)) : null;
-  channel = supabase.channel(`nightshift:${code}`, { config: { broadcast: { self: false }, presence: { key: myId } } });
+  channel = supabase.channel(`nightshift:${code}`, { config: { broadcast: { self: false } } });
   channel.on('broadcast',{event:'state'},({payload})=>{
     if (host || !payload?.game) return;
     // A state response also confirms the room is live; Presence sync can lag
@@ -378,22 +378,15 @@ function connect(code, host) {
   });
   channel.on('broadcast',{event:'full'},({payload})=>{ if(payload?.id===myId){ toast('This room already has six guests.'); leaveRoom(); } });
   channel.on('broadcast',{event:'started'},({payload})=>{if(payload?.id===myId){toast('This night has already started.');}});
-  channel.on('presence',{event:'sync'},()=>{
-    const state=channel.presenceState();
-    const records=Object.values(state).flat();
-    hostPresent=records.some(p=>p.role==='host');
-    if (host) for (const p of records) if (p.id&&p.name) rememberPlayer(p.id,p.name);
-  });
   channel.subscribe(async status=>{
     if(status==='SUBSCRIBED'){
       subscribed=true; draw();
     if(host){
         const own=game.players?.find(p=>p.id===myId);
-        channel.track({id:myId,name:own?.name||myName||'',role:'host'});
         if(game.phase==='question' && game.deadline) scheduleDeadline(resolveQuestion,Math.max(0,game.deadline-Date.now()));
         if(game.phase==='finale' && game.deadline) scheduleDeadline(resolveFinaleQuestion,Math.max(0,game.deadline-Date.now()));
         if(game.phase==='challenge' && game.challenge?.deadline) scheduleDeadline(resolveChallenge,Math.max(0,game.challenge.deadline-Date.now()));
-      } else if (myName) { channel.track({id:myId,name:myName}); await channel.send({type:'broadcast',event:'intent',payload:{id:myId,action:'join',name:myName}}); }
+      } else if (myName) { await channel.send({type:'broadcast',event:'intent',payload:{id:myId,action:'join',name:myName}}); }
       else await channel.send({type:'broadcast',event:'intent',payload:{id:myId,action:'sync'}});
     }
     if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){subscribed=false;toast('The connection dropped. Reconnecting…');draw();}
@@ -443,14 +436,13 @@ roomEl.addEventListener('click', async event=>{
     const name=document.querySelector('#name-input')?.value||'';
     try{setPlayerName(name);}catch(e){toast(e.message);return;}
     localStorage.setItem('nightshift-player-name',myName);
-    channel.track({id:myId,name:myName});
     emitIntent('join',{name:myName}); return;
   }
   if(action==='checkin' && isHost){
     const name=document.querySelector('#name-input')?.value||'';
     try{setPlayerName(name);}catch(e){toast(e.message);return;}
     localStorage.setItem('nightshift-player-name',myName);
-    channel.track({id:myId,name:myName,role:'host'}); rememberPlayer(myId,myName); return;
+    rememberPlayer(myId,myName); return;
   }
   if(action==='answer'){
     const answer=Number(target.dataset.answer);

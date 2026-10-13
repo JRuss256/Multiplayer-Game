@@ -14,7 +14,10 @@ For a two-device session, connect both devices to the same Wi-Fi and open the ho
 - Open a room on one device; check in a player name.
 - Join with the five-character code from a second device.
 - Start with two or more players. A room supports six.
+- Read the shared tutorial, then use **Begin the First Question**. Try **Copy Invite** from the host lobby.
+- Turn the optional generated ambience and sound cues on and off from the top bar.
 - Try one correct and one incorrect answer.
+- Answer early and confirm the 18-second question countdown still reaches zero before the result appears.
 - In the Mirror Test, watch the three marks, then repeat them using the four large buttons.
 - Continue through five questions and the exit run.
 - Refresh one guest during a round and confirm the player returns to the room.

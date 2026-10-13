@@ -3,7 +3,7 @@ Project title: THE NIGHT SHIFT
 Project cover image: cover.png
 
 Project description:
-A live haunted trivia party for 2–6 players. One host opens the hotel; friends join from phones or laptops with a five-character room code. Get five rounds of recent general-knowledge trivia right, or face the Mirror Test to protect one of three hearts. Survivors race through an exit run, where the first player to earn three correct answers escapes. No account or download needed. Each revealed fact links to its source.
+A live haunted trivia party for 2–6 players. One host opens the hotel; friends join from phones or laptops with a five-character room code. A shared tutorial explains the rules before play. Get five rounds of recent general-knowledge trivia right, or face the Mirror Test to protect one of three hearts. Survivors race through an exit run, where the first player to earn three correct answers escapes. Question and test timers run to zero for every player. Original, optional music and sound effects are synthesized in the browser. No account or download needed. Each revealed fact links to its source.
 
 Project URL:
 https://jruss256.github.io/Multiplayer-Game/

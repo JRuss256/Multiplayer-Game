@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap');
-
 :root {
   color-scheme:dark;
   --bg:#0c0e0c;
@@ -10,9 +8,9 @@
   --line:#30372f;
   --acid:#d0ee74;
   --red:#e06855;
-  --mono:'DM Mono',monospace;
-  --sans:'DM Sans',sans-serif;
-  --display:'Playfair Display',serif
+  --mono:ui-monospace,'Cascadia Code','Segoe UI Mono',Consolas,monospace;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --display:Georgia,'Times New Roman',serif
 }
 
 * {
@@ -90,6 +88,9 @@ body {
   font:10px var(--mono);
   letter-spacing:.08em;
   margin-left:20px;
+  min-width:44px;
+  min-height:44px;
+  padding:8px;
   cursor:pointer
 }
 .sound-button span {
@@ -446,6 +447,27 @@ footer a:hover {
   grid-template-columns:minmax(0,1.6fr) minmax(240px,.8fr);
   gap:26px
 }
+.sr-only {
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0
+}
+.game-top,.game-grid>.card,.game-grid>.player-panel {
+  animation:surface-in .38s cubic-bezier(.2,.7,.25,1) both
+}
+.game-grid>.player-panel {
+  animation-delay:.07s
+}
+@keyframes surface-in {
+  from {opacity:0;transform:translateY(10px)}
+  to {opacity:1;transform:translateY(0)}
+}
 .card {
   background:linear-gradient(145deg,#171c17,#111410);
   border:1px solid #2c342d;
@@ -527,6 +549,30 @@ footer a:hover {
 .timer-number {
   font-size:17px
 }
+.timer.urgent {
+  color:#ff9a78
+}
+.question-progress {
+  display:block;
+  appearance:none;
+  width:100%;
+  height:4px;
+  border:0;
+  margin:0 0 26px;
+  background:#30382e;
+  color:var(--acid)
+}
+.question-progress::-webkit-progress-bar {
+  background:#30382e
+}
+.question-progress::-webkit-progress-value {
+  background:var(--acid);
+  transition:width .12s linear
+}
+.question-progress::-moz-progress-bar {
+  background:var(--acid);
+  transition:width .12s linear
+}
 .player-panel {
   background:#121612;
   border:1px solid #2a3229;
@@ -555,6 +601,14 @@ footer a:hover {
   padding:10px 2px;
   border-bottom:1px solid #232923
 }
+.player-list .player {
+  animation:surface-in .3s ease both
+}
+.player-list .player:nth-child(2) {animation-delay:.03s}
+.player-list .player:nth-child(3) {animation-delay:.06s}
+.player-list .player:nth-child(4) {animation-delay:.09s}
+.player-list .player:nth-child(5) {animation-delay:.12s}
+.player-list .player:nth-child(6) {animation-delay:.15s}
 .player-avatar {
   width:24px;
   height:24px;
@@ -624,6 +678,53 @@ footer a:hover {
   font:10px var(--mono);
   letter-spacing:.08em;
   margin-bottom:14px
+}
+.tutorial-steps {
+  display:grid;
+  gap:10px;
+  margin:24px 0 20px
+}
+.tutorial-step {
+  display:grid;
+  grid-template-columns:38px 1fr;
+  gap:14px;
+  padding:16px 0;
+  border-top:1px solid #2a3229
+}
+.tutorial-step h3 {
+  margin:0 0 6px;
+  color:var(--ink);
+  font:600 15px var(--sans)
+}
+.tutorial-step p,.tutorial-audio-note {
+  margin:0;
+  color:#969f90;
+  font-size:13px;
+  line-height:1.55
+}
+.tutorial-number {
+  color:var(--acid);
+  font:11px var(--mono);
+  padding-top:3px
+}
+.tutorial-audio-note {
+  font-size:11px;
+  margin:17px 0 0
+}
+.copy-code-button {
+  min-height:44px;
+  margin-left:12px;
+  padding:4px 8px;
+  border:1px solid #4a5543;
+  background:transparent;
+  color:#c8d1b5;
+  font:9px var(--mono);
+  letter-spacing:.08em;
+  cursor:pointer
+}
+.copy-code-button:hover {
+  color:var(--acid);
+  border-color:var(--acid)
 }
 .waiting {
   color:#8f9889;
@@ -875,8 +976,35 @@ footer a:hover {
 @media(prefers-reduced-motion:reduce) {
   *,*:before,*:after {
     scroll-behavior:auto!important;
-    transition:none!important
+    transition:none!important;
+    animation:none!important
   }
 
+}
+
+.button:active,.answer:active,.tile:active {
+  transform:translateY(1px) scale(.99)
+}
+.button:focus-visible,.answer:focus-visible,.tile:focus-visible,.sound-button:focus-visible,.copy-code-button:focus-visible {
+  outline:2px solid var(--acid);
+  outline-offset:3px
+}
+.sound-button {
+  min-width:44px;
+  min-height:44px;
+  padding:8px
+}
+.glyph.current {
+  animation:glyph-in .32s cubic-bezier(.2,.7,.25,1) both
+}
+@keyframes glyph-in {
+  from {opacity:.35;transform:translateY(4px)}
+  to {opacity:1;transform:translateY(0)}
+}
+.connection-toast {
+  animation:surface-in .22s ease both
+}
+@media(prefers-reduced-motion:reduce) {
+  .button:active,.answer:active,.tile:active,.glyph.current {transform:none!important}
 }
 

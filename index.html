@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0c0e0c">
   <meta name="description" content="Six guests. Five questions. One door out. A live, room-code haunted trivia game for friends.">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://zwskozcbimqatqfauyuh.supabase.co wss://zwskozcbimqatqfauyuh.supabase.co; base-uri 'self'; object-src 'none'; frame-src 'none'; form-action 'self'">
   <title>THE NIGHT SHIFT — a live haunted trivia game</title>
   <link rel="icon" href="cover.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
-  <script type="importmap">{"imports":{"@supabase/supabase-js":"https://esm.sh/@supabase/supabase-js@2.58.0"}}</script>
-  <script type="module" src="app.js?v=room-join-fix"></script>
+  <script type="module" src="app.js?v=polished-room-3"></script>
 </head>
 <body>
   <div class="noise" aria-hidden="true"></div>
   <header class="topbar">
     <a class="wordmark" href="#home" aria-label="The Night Shift home"><span class="mark">N</span><span>THE NIGHT SHIFT</span></a>
-    <div class="top-right"><span class="live-dot"></span><span id="connection-label">NIGHT WINDOW OPEN</span><button class="sound-button" id="sound-toggle" aria-label="Toggle sound" title="Toggle sound">♫ <span>SOUND OFF</span></button></div>
+    <div class="top-right"><span class="live-dot" aria-hidden="true"></span><span id="connection-label" aria-live="polite">NIGHT WINDOW OPEN</span><button class="sound-button" id="sound-toggle" aria-label="Turn sound and music on" aria-pressed="false" title="Turn sound and music on">♫ <span>SOUND OFF</span></button></div>
   </header>
   <main id="app" aria-live="polite">
     <section id="home" class="screen home-screen">

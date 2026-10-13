@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c0e0c">
+  <meta name="description" content="Six guests. Five questions. One door out. A live, room-code haunted trivia game for friends.">
+  <title>THE NIGHT SHIFT — a live haunted trivia game</title>
+  <link rel="icon" href="cover.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">{"imports":{"@supabase/supabase-js":"https://esm.sh/@supabase/supabase-js@2.58.0"}}</script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="wordmark" href="#home" aria-label="The Night Shift home"><span class="mark">N</span><span>THE NIGHT SHIFT</span></a>
+    <div class="top-right"><span class="live-dot"></span><span id="connection-label">NIGHT WINDOW OPEN</span><button class="sound-button" id="sound-toggle" aria-label="Toggle sound" title="Toggle sound">♫ <span>SOUND OFF</span></button></div>
+  </header>
+  <main id="app" aria-live="polite">
+    <section id="home" class="screen home-screen">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-rule"></span> A GAME FOR 2–6 STRANGERS (OR FRIENDS)</div>
+        <h1>THE<br><em>NIGHT</em><br>SHIFT<span class="period">.</span></h1>
+        <p class="intro">The hotel is closing. Get the answers right, survive the house tests, and find the way out before the lights go.</p>
+        <div class="home-actions"><button class="button button-primary" id="host-button">OPEN THE HOTEL <span>↗</span></button><div class="join-line"><input id="room-input" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="ROOM CODE" aria-label="Room code"><button class="button button-quiet" id="join-button">CHECK IN <span>→</span></button></div></div>
+        <p id="home-error" class="error-message" role="alert"></p>
+        <div class="fine-print">5 ROUNDS <b>·</b> 3 HEARTS <b>·</b> ONE EXIT <b>·</b> NO ACCOUNT NEEDED</div>
+      </div>
+      <div class="hero-art" aria-label="An illustrated empty hotel corridor at night">
+        <div class="art-grain"></div><div class="moon"></div><div class="hall-glow"></div>
+        <div class="hallway"><div class="door door-one"><span>08</span></div><div class="door door-two"><span>09</span></div><div class="end-door"><i></i><span>EXIT</span></div><div class="floor-line"></div><div class="runner"></div></div>
+        <div class="art-note"><span>ROOM 09</span><span>PLEASE DO NOT DISTURB</span></div>
+        <div class="art-caption">VACANCY<br><span>ONE WAY OUT</span></div>
+      </div>
+      <div class="ticker"><span>THE NIGHT SHIFT</span><span>·</span><span>NO CHECKOUT AFTER MIDNIGHT</span><span>·</span><span>THE NIGHT SHIFT</span><span>·</span><span>NO CHECKOUT AFTER MIDNIGHT</span><span>·</span></div>
+    </section>
+    <section id="room" class="screen game-screen hidden"></section>
+  </main>
+  <footer><span>AN ORIGINAL HAUNTED TRIVIA PARTY GAME</span><a href="SOURCES.md" target="_blank" rel="noreferrer">FACT CHECKS & SOURCES</a><span>BUILT FOR 2–6 PLAYERS</span></footer>
+</body>
+</html>

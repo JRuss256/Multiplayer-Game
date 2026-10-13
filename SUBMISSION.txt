@@ -11,6 +11,4 @@ https://jruss256.github.io/Multiplayer-Game/
 Repository:
 https://github.com/JRuss256/Multiplayer-Game
 
-Contest timing note:
-The supplied Official Rules set the entry deadline at October 30, 2026, 11:59 p.m. Pacific. The challenge summary says October 31, so use the date in the Official Rules.
 

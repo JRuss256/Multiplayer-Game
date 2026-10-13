@@ -2,6 +2,8 @@
 
 An original, browser-based haunted trivia party game for 2–6 players. Everyone joins from a phone or laptop with a five-character room code. No accounts or downloads.
 
+Live game: [Play THE NIGHT SHIFT](https://jruss256.github.io/Multiplayer-Game/).
+
 ## Play
 
 1. Open the deployed link on a laptop or phone.
@@ -25,4 +27,3 @@ Room codes identify public Realtime topics. Anyone who knows a room code can con
 - `styles.css` — responsive visuals and controls
 - `cover.svg` — original cover art for a submission card
 - `SOURCES.md` — answer checks and design references
-

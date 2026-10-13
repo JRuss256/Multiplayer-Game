@@ -1,0 +1,15 @@
+Project title: THE NIGHT SHIFT
+
+Project cover image: cover.png
+
+Project description:
+A live haunted trivia party for 2–6 players. One host opens the hotel; friends join from phones or laptops with a five-character room code. Get five rounds of recent general-knowledge trivia right, or face the Mirror Test to protect one of three hearts. Survivors race through an exit run, where the first player to earn three correct answers escapes. No account or download needed. Each revealed fact links to its source.
+
+Project URL:
+https://jruss256.github.io/Multiplayer-Game/
+
+Repository:
+https://github.com/JRuss256/Multiplayer-Game
+
+Contest timing note:
+The supplied Official Rules set the entry deadline at October 30, 2026, 11:59 p.m. Pacific. The challenge summary says October 31, so use the date in the Official Rules.
